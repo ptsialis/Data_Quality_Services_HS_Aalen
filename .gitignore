@@ -1,6 +1,16 @@
 .env
 .env.*
 !.env.example
+
+# Agent and GPT instructions
+AGENTS.md
+**/AGENTS.md
+*.agent.md
+*.prompt.md
+*instructions*.md
+.gpt-instruction
+.github/
+
 node_modules/
 .venv/
 venv/
