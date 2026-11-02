@@ -61,7 +61,8 @@ const resources = {
       personalFeaturesLabel: "Personal Features",
       nonPersonalFeaturesLabel: "Non-Personal Features",
       imputedValuesLabel: "Imputed Values",
-      notImputedValuesLabel: "Not Imputed Values"
+      notImputedValuesLabel: "Not Imputed Values",
+      noDatasetLoaded: "No dataset loaded. Please select a dataset first."
 
 
     }
@@ -125,7 +126,8 @@ const resources = {
       personalFeaturesLabel: "Persönliche Merkmale",
       nonPersonalFeaturesLabel: "Nicht-persönliche Merkmale",
       imputedValuesLabel: "Imputierte Werte",
-      notImputedValuesLabel: "Nicht imputierte Werte"
+      notImputedValuesLabel: "Nicht imputierte Werte",
+      noDatasetLoaded: "Keine Rohdaten geladen. Bitte den Datensatz erneut auswählen oder den Tab erneut öffnen."
 
     }
   }

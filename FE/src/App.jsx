@@ -657,6 +657,12 @@ function App() {
           setParsedCSV={setParsedCSV}
         />
 
+        {selectedOperation && !uploadSuccess && selectedOperation !== "downloads" && (
+          <div className="no-dataset-warning" role="alert">
+            {t('noDatasetLoaded')}
+          </div>
+        )}
+
         {selectedOperation === "downloads" && (
           <div className="summary-plot-section">
             <div className="plots-grid">
@@ -665,7 +671,7 @@ function App() {
 
                 {!uploadSuccess ? (
                   <div className="explanation-text">
-                    Bitte zuerst einen Datensatz hochladen.
+                    {t('noDatasetLoaded')}
                   </div>
                 ) : (
                   <>
@@ -1305,14 +1311,6 @@ function App() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
-        )}
-
-        {selectedOperation === 'original' && activeTabs.original === 'rawData' && !(jsonResponse?.dataframe?.data?.length > 0) && (
-          <div className="summary-plot-section">
-            <div className="table-wrapper">
-              <p>Keine Rohdaten geladen. Bitte den Datensatz erneut auswählen oder den Tab erneut öffnen.</p>
             </div>
           </div>
         )}

@@ -118,15 +118,15 @@ input[type="file"] {
   bottom: 20px;
   left: 20px;
   right: 20px;
-  height: var(--footer-height);
   width: auto;
   margin: 0;
-
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "school caption ministry";
+  gap: 16px;
   align-items: center;
   background: white;
-  padding: 15px 40px 10px 40px;
+  padding: 10px 24px;
   box-sizing: border-box;
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 8px 8px 12px 12px;
@@ -145,21 +145,59 @@ input[type="file"] {
 
 .footer-logo {
   height: 40px;
-  margin: 0 1rem;
+  max-width: 100%;
   object-fit: contain;
 }
 
+.footer-logo:first-child {
+  grid-area: school;
+  justify-self: start;
+}
+
+.footer-logo:nth-child(2) {
+  grid-area: ministry;
+  justify-self: end;
+}
+
 .footer .content {
-  position: absolute;
-  bottom: 0px;
-  left: 50%;
-  transform: translateX(-50%);
+  grid-area: caption;
+  position: static;
   font-size: 1rem;
   color: #000;
   text-align: center;
-  width: 100%;
+  width: auto;
   pointer-events: none;
+}
 
+.footer .content p {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .footer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "school ministry"
+      "caption caption";
+    gap: 4px 12px;
+    height: auto;
+    min-height: 76px;
+    padding: 8px 16px;
+  }
+
+  .footer-logo {
+    height: 30px;
+    max-width: 100%;
+  }
+
+  .footer-logo:first-child,
+  .footer-logo:nth-child(2) {
+    justify-self: center;
+  }
+
+  .footer .content {
+    font-size: 0.85rem;
+  }
 }
 
 .drop-area {
@@ -402,6 +440,20 @@ input[type="file"] {
   user-select: text;
   margin-left: 10px;
   border-radius: 8px 8px 12px 12px;
+}
+
+.no-dataset-warning {
+  width: min(720px, calc(100% - 2rem));
+  margin: 24px auto;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(111, 10, 127, 0.3);
+  border-left: 5px solid #6f0a7f;
+  border-radius: 8px;
+  color: #242124;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .highlight-prediction {
