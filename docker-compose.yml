@@ -1,0 +1,41 @@
+name: Data_Quality_Services_HS_Aalen
+
+services:
+  backend:
+    # Apple Silicon can keep the emulated amd64 image with the default.
+    # Linux x86_64 hosts use the same platform natively.
+    # Override DOCKER_PLATFORM only if you intentionally need a different arch.
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
+    build:
+      context: .
+      dockerfile: BE/Dockerfile
+
+    environment:
+      FLASK_ENV: "development"
+      SECRET_KEY: "${SECRET_KEY:?Add SECRET_KEY to the project .env file}"
+      CORS_ORIGINS: "http://localhost:8503"
+      SESSION_COOKIE_SECURE: "false"
+      SESSION_FILE_DIR: "/tmp/flask_sessions"
+      SESSION_DATA_PATH: "/tmp/session_data"
+      LOG_LEVEL: "INFO"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/status', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
+    build:
+      context: ./FE
+      dockerfile: Dockerfile
+    ports:
+      - "8503:5173"
+    environment:
+      DOCKER: "true"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

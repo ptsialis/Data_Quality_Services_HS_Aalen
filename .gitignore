@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+FE/dist/
+BE/Session_Flask/
+BE/session_data/
+BE/temp_plots/
+BE/data/DataSets/
+BE/data/meta_data_piveau/
+BE/data/*.csv
+BE/metadata.json
+BE/metadata.jsonld
