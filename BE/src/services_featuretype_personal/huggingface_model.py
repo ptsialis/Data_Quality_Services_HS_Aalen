@@ -14,6 +14,7 @@
 
 
 import logging
+import re
 import numpy as np
 import torch
 
@@ -66,6 +67,12 @@ def load_model(model: str = "", quantization: str = "4bit"):
         )
 
     cuda_available = torch.cuda.is_available()
+    is_gpu_required_model = model == "Qwen/Qwen2.5-14B-Instruct"
+
+    if is_gpu_required_model and not cuda_available:
+        raise RuntimeError(
+            "Qwen2.5-14B-Instruct requires an NVIDIA CUDA GPU; CPU full-precision loading is not supported."
+        )
 
     logger.info("Loading model: %s", model)
     logger.info("CUDA available: %s", cuda_available)
@@ -136,6 +143,12 @@ def load_model(model: str = "", quantization: str = "4bit"):
 
     except RuntimeError as exc:
         if cuda_available and "out of memory" in str(exc).lower():
+            if is_gpu_required_model:
+                torch.cuda.empty_cache()
+                raise RuntimeError(
+                    "Qwen2.5-14B-Instruct did not fit in the available GPU memory with 4-bit quantization."
+                ) from exc
+
             logger.warning(
                 "CUDA ran out of memory while loading the model. "
                 "Retrying on the CPU without quantization."
@@ -219,6 +232,18 @@ def load_model(model: str = "", quantization: str = "4bit"):
 
 
 
+def strip_thinking_output(response):
+    if not isinstance(response, str):
+        return response
+
+    closing_tags = list(re.finditer(r"</(?:think|thinking)>", response, flags=re.IGNORECASE))
+    if closing_tags:
+        response = response[closing_tags[-1].end():]
+
+    response = re.sub(r"</?(?:think|thinking)>", "", response, flags=re.IGNORECASE)
+    return response.strip()
+
+
 def ask_model_mes(messages, pipe=None, max_new_tokens=10000):
     """
     Call a chat-style text-generation pipeline with an already-built list of messages.
@@ -264,7 +289,7 @@ def ask_model_mes(messages, pipe=None, max_new_tokens=10000):
         response = generated_text.get("content", "")
     else:
         response = generated_text
-    return response
+    return strip_thinking_output(response)
 
 
 def ask_model_prompt(prompt, system_prompt=None, pipe=None):
@@ -339,7 +364,7 @@ def ask_model_prompt(prompt, system_prompt=None, pipe=None):
         try:
             # Extract the assistant's final generated message content
             response = outputs[0]["generated_text"][-1]['content']
-            return response if response else ""
+            return strip_thinking_output(response) if response else ""
         except (IndexError, KeyError, TypeError) as e:
             logger.error(f"Failed to extract response from model output: {e}")
             return ""

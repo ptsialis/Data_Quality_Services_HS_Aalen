@@ -303,7 +303,7 @@ function App() {
 
   const operations = [
     'original', 'inference', 'datagraphs', 'imputation', 'anomaly', 'personal',
-    'summary', 'cleaned', /* 'model', */ 'downloads'
+    'tasktype', 'summary', 'cleaned', /* 'model', */ 'downloads'
   ];
 
   const tabOptions = {
@@ -313,6 +313,7 @@ function App() {
     imputation: ['imputationResults', 'seeExplanationImp'],
     anomaly: ['anomalyResults', 'seeExplanationAno'],
     personal: [],
+    tasktype: [],
     summary: [],
     cleaned: [],
     model: [],
@@ -653,8 +654,6 @@ function App() {
           setUploadedFile={setUploadedFile}
           setColumns={setColumns}
           setTargetVariable={setTargetVariable}
-          setCsvContent={setCsvContent}
-          setParsedCSV={setParsedCSV}
         />
 
         {selectedOperation && !uploadSuccess && selectedOperation !== "downloads" && (
@@ -1738,6 +1737,30 @@ function App() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {selectedOperation === 'tasktype' && jsonResponse && (
+          <div className="summary-plot-section">
+            <div className="table-wrapper task-type-result">
+              <h3>{t('tasktype')}</h3>
+              {jsonResponse.task_type ? (
+                <dl>
+                  <div>
+                    <dt>{t('taskDomainLabel')}</dt>
+                    <dd>{jsonResponse.task_type.domain}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('predictionTaskLabel')}</dt>
+                    <dd>{jsonResponse.task_type.task}</dd>
+                  </div>
+                </dl>
+              ) : (
+                <div className="explanation-text">
+                  {t(jsonResponse.enabled ? 'taskTypeResultMissing' : 'taskTypeNotRun')}
+                </div>
+              )}
             </div>
           </div>
         )}

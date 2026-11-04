@@ -16,7 +16,13 @@ from services.session_state import (
     get_workspace_path,
     remove_current_workspace,
 )
-from services.model_manager import get_model, is_model_initialized, is_model_loading
+from services.model_manager import (
+    DEFAULT_MODEL_KEY,
+    MODEL_OPTIONS,
+    get_model,
+    is_model_initialized,
+    is_model_loading,
+)
 import src.global_controller as gc
 import src.meta_data_export as md
 import src.summary as sm
@@ -28,6 +34,7 @@ from src.services_featuretype_personal.services_LLM import (
 )
 from src.services_featuretype_personal.services_LLM import FeaturizeFile, Load_RF, FeatureExtraction
 from src.file_handler_random import serialize_df_for_llm, load_dataset_into_dataframe
+from src.task_type_identification import identify_task_type
 from src.file_security import validate_uploaded_file, sanitize_dataframe, log_security_event
 from plotly.utils import PlotlyJSONEncoder
 from datetime import datetime
@@ -44,6 +51,7 @@ from pathlib import Path
 
 MAX_COLUMNS_PER_LLM_CALL = 20
 MAX_SAMPLES_PER_COLUMN = 6
+MAX_DATASET_DESCRIPTION_BYTES = 32 * 1024
 MAX_UPLOAD_ROWS = int(os.environ.get("DATAQUALITY_MAX_UPLOAD_ROWS", "50000"))
 MAX_UPLOAD_COLUMNS = int(os.environ.get("DATAQUALITY_MAX_UPLOAD_COLUMNS", "500"))
 bp = Blueprint('main', __name__)
@@ -73,6 +81,30 @@ def sanitize_for_spreadsheet_export(df: pd.DataFrame) -> pd.DataFrame:
     if hasattr(df, "map"):
         return df.map(neutralize_spreadsheet_formula)
     return df.applymap(neutralize_spreadsheet_formula)
+
+
+def _read_dataset_description():
+    description_file = request.files.get("dataset_description_file")
+    if description_file is None:
+        return ""
+
+    filename = description_file.filename or ""
+    if Path(filename).suffix.lower() != ".txt":
+        raise ValueError("Dataset description must be uploaded as a .txt file.")
+
+    content = description_file.stream.read(MAX_DATASET_DESCRIPTION_BYTES + 1)
+    if len(content) > MAX_DATASET_DESCRIPTION_BYTES:
+        raise ValueError("Dataset description must be no larger than 32 KB.")
+    if not content:
+        raise ValueError("Dataset description file must not be empty.")
+
+    try:
+        description = content.decode("utf-8-sig").strip()
+    except UnicodeDecodeError as error:
+        raise ValueError("Dataset description must be a UTF-8 text file.") from error
+    if not description:
+        raise ValueError("Dataset description file must not be empty.")
+    return description
 
 
 #wandelt DataFrame in Dictionary um
@@ -242,7 +274,12 @@ def status():
             "timestamp": datetime.now().isoformat()
         }), 500
 
-def _load_file_by_format(file) -> tuple[pd.DataFrame, str]:
+def _load_file_by_format(
+    file,
+    max_rows: int = MAX_UPLOAD_ROWS,
+    random_group_sample: bool = True,
+    has_header: bool = True,
+) -> tuple[pd.DataFrame, str]:
     """
     Load file based on format with security validation.
     Supports CSV, ARFF, JSON, Parquet, Arrow, and more.
@@ -286,8 +323,10 @@ def _load_file_by_format(file) -> tuple[pd.DataFrame, str]:
         # Try loading with universal handler (now with proper extension)
         df = load_dataset_into_dataframe(
             temp_path,
-            max_rows=MAX_UPLOAD_ROWS,
+            has_header=has_header,
+            max_rows=max_rows,
             max_columns=MAX_UPLOAD_COLUMNS,
+            random_group_sample=random_group_sample,
         )
         
         # Check for spreadsheet formula-injection patterns, but keep the
@@ -306,6 +345,32 @@ def _load_file_by_format(file) -> tuple[pd.DataFrame, str]:
             os.remove(temp_path)
 
 
+@bp.route('/preview', methods=['POST'])
+def preview_uploaded_dataset():
+    file = request.files.get('file')
+    if not file:
+        return jsonify({"success": False, "error": "No file uploaded."}), 400
+
+    try:
+        df, _file_ext = _load_file_by_format(
+            file,
+            max_rows=25,
+            random_group_sample=False,
+        )
+    except SecurityValidationError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Could not read file: {e}"}), 400
+
+    if df.empty or len(df.columns) == 0:
+        return jsonify({"success": False, "error": "The file contains no tabular data."}), 400
+
+    return jsonify({
+        "success": True,
+        "columns": [str(column) for column in df.columns],
+    })
+
+
 @bp.route('/upload', methods=['POST'])
 def upload_data_beginning():
     upload_started_at = time.perf_counter()
@@ -313,6 +378,11 @@ def upload_data_beginning():
     if not file:
         logger.warning("upload.rejected reason=no_file")
         return jsonify({"success": False, "error": "Keine Datei hochgeladen."}), 400
+
+    try:
+        dataset_description = _read_dataset_description()
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
 
     try:
         df, file_ext = _load_file_by_format(file)
@@ -355,18 +425,28 @@ def upload_data_beginning():
     
     use_llm_feature_type_inference = request.form.get("use_llm_feature_type_inference", "false") == "true"
     use_llm_personal_data_detection = request.form.get("use_llm_personal_data_detection", "false") == "true"
+    use_llm_task_type_identification = request.form.get("use_llm_task_type_identification", "false") == "true"
+    llm_model_key = request.form.get("llm_model", DEFAULT_MODEL_KEY)
+    if llm_model_key not in MODEL_OPTIONS:
+        return jsonify({"success": False, "error": "Unsupported LLM model selection."}), 400
 
     logger.info(
-        "upload.options filename=%s target=%s target_problem_type=%s llm_feature_type=%s llm_personal=%s",
+        "upload.options filename=%s target=%s target_problem_type=%s llm_feature_type=%s llm_personal=%s llm_task_type=%s llm_model=%s",
         file.filename,
         target_variable,
         feature_typ_inference,
         use_llm_feature_type_inference,
         use_llm_personal_data_detection,
+        use_llm_task_type_identification,
+        llm_model_key,
     )
 
     model_llm = None
-    if use_llm_feature_type_inference or use_llm_personal_data_detection:
+    if (
+        use_llm_feature_type_inference
+        or use_llm_personal_data_detection
+        or use_llm_task_type_identification
+    ):
         if not LLM_UPLOAD_LOCK.acquire(blocking=False):
             logger.warning("upload.llm_busy filename=%s", file.filename)
             return jsonify({
@@ -379,7 +459,7 @@ def upload_data_beginning():
 
         try:
             logger.info("upload.llm_model.start filename=%s", file.filename)
-            model_llm = get_model()  # This will wait for the model with timeout
+            model_llm = get_model(model_key=llm_model_key)  # Wait for the selected model.
             logger.info("upload.llm_model.done filename=%s", file.filename)
         except RuntimeError as e:
             error_msg = str(e)
@@ -401,6 +481,24 @@ def upload_data_beginning():
                 "retry": False
             }), 500
 
+    task_type_result = None
+    if use_llm_task_type_identification:
+        try:
+            task_type_result = identify_task_type(
+                df_original,
+                target_variable,
+                model_llm,
+                dataset_description=dataset_description,
+            )
+            gc.add_metadata("ML Task Type", task_type_result["label"])
+        except Exception as e:
+            logger.exception("upload.task_type.failed filename=%s", file.filename)
+            return jsonify({
+                "success": False,
+                "error": f"Task type identification failed: {e}",
+                "retry": False,
+            }), 502
+
     if (
         use_llm_feature_type_inference
         and use_llm_personal_data_detection
@@ -412,12 +510,14 @@ def upload_data_beginning():
         ) = execute_dataset_llm(
             df_original,
             model_llm,
+            dataset_description=dataset_description,
         )
 
     elif use_llm_feature_type_inference:
         feature_typ_inference = execute_featuretype_LLM(
             df_original,
             model_llm,
+            dataset_description=dataset_description,
         )
 
         personal_0, personal_1 = (
@@ -433,6 +533,7 @@ def upload_data_beginning():
         personal_0, personal_1 = execute_personal_llm(
             df_original,
             model_llm,
+            dataset_description=dataset_description,
         )
 
     else:
@@ -453,9 +554,37 @@ def upload_data_beginning():
         len(personal_1) if personal_1 is not None else 0,
     )
 
-    time_or_tab = gc.check_time_series(
-        df,
-        feature_typ_inference,
+    if use_llm_task_type_identification:
+        domain_to_anomaly_mode = {
+            "Tabular": "Tabular",
+            "Time_Series": "Time series",
+        }
+        predicted_domain = task_type_result.get("domain") if task_type_result else None
+        time_or_tab = domain_to_anomaly_mode.get(predicted_domain)
+        if time_or_tab is None:
+            logger.error(
+                "upload.anomaly.invalid_task_domain filename=%s domain=%s",
+                file.filename,
+                predicted_domain,
+            )
+            return jsonify({
+                "success": False,
+                "error": "Task type identification returned an unsupported data domain.",
+                "retry": False,
+            }), 502
+        anomaly_mode_source = "llm_task_type"
+    else:
+        time_or_tab = gc.check_time_series(
+            df,
+            feature_typ_inference,
+        )
+        anomaly_mode_source = "feature_inference"
+
+    logger.info(
+        "upload.anomaly.mode_selected filename=%s mode=%s source=%s",
+        file.filename,
+        time_or_tab,
+        anomaly_mode_source,
     )
 
     gc.add_metadata(
@@ -531,6 +660,9 @@ def upload_data_beginning():
         "file_format": file_ext,
         "use_llm_feature_type_inference": use_llm_feature_type_inference,
         "use_llm_personal_data_detection": use_llm_personal_data_detection,
+        "use_llm_task_type_identification": use_llm_task_type_identification,
+        "llm_model": llm_model_key,
+        "task_type": task_type_result,
     }
     
     save_dataframe_to_session("original", df_original)
@@ -734,6 +866,15 @@ def show_personal():
     return jsonify({
         "personal_1": df_to_json(personal_1),
         "personal_0": df_to_json(personal_0)
+    })
+
+
+@bp.route('/tasktype')
+def show_task_type():
+    data = session.get("data", {})
+    return jsonify({
+        "enabled": data.get("use_llm_task_type_identification", False),
+        "task_type": data.get("task_type"),
     })
 
 

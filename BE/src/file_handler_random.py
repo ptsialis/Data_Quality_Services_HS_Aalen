@@ -503,7 +503,7 @@ def load_dataset_into_dataframe(
                 raise ValueError("max_rows must be a positive integer")
             df = df.iloc[:effective_max_rows_for_read].copy()
 
-    elif suffix == ".csv":
+    elif suffix in {".csv", ".tsv"}:
         df = load_csv_into_dataframe(
             str(file_path),
             has_header=has_header,
@@ -517,19 +517,25 @@ def load_dataset_into_dataframe(
             max_rows=effective_max_rows_for_read,
         )
 
-    elif suffix == ".json":
+    elif suffix in {".json", ".jsonl"}:
         df = load_json_into_dataframe(
             str(file_path),
             max_rows=effective_max_rows_for_read,
         )
 
-    elif suffix == ".arrow":
-        df = load_arrow_into_dataframe(
-            str(file_path),
-            max_rows=effective_max_rows_for_read,
-        )
+    elif suffix in {".arrow", ".feather"}:
+        if suffix == ".feather":
+            df = pd.read_feather(file_path)
+            if effective_max_rows_for_read is not None:
+                df = df.iloc[:effective_max_rows_for_read].copy()
+            df = materialize_dataframe(df)
+        else:
+            df = load_arrow_into_dataframe(
+                str(file_path),
+                max_rows=effective_max_rows_for_read,
+            )
 
-    elif suffix == ".parquet":
+    elif suffix in {".parquet", ".pq"}:
         df = load_parquet_into_dataframe(
             str(file_path),
             max_rows=effective_max_rows_for_read,

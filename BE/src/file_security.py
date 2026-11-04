@@ -38,16 +38,22 @@ MAX_PARQUET_SIZE_MB = 1000
 FILE_SIZE_LIMITS = {
     'csv': MAX_CSV_SIZE_MB * 1024 * 1024,
     'txt': MAX_CSV_SIZE_MB * 1024 * 1024,
+    'dat': MAX_CSV_SIZE_MB * 1024 * 1024,
+    'data': MAX_CSV_SIZE_MB * 1024 * 1024,
     'tsv': MAX_CSV_SIZE_MB * 1024 * 1024,
+    'xlsx': MAX_CSV_SIZE_MB * 1024 * 1024,
     'arff': MAX_ARFF_SIZE_MB * 1024 * 1024,
     'json': MAX_JSON_SIZE_MB * 1024 * 1024,
+    'jsonl': MAX_JSON_SIZE_MB * 1024 * 1024,
     'parquet': MAX_PARQUET_SIZE_MB * 1024 * 1024,
+    'pq': MAX_PARQUET_SIZE_MB * 1024 * 1024,
     'arrow': MAX_PARQUET_SIZE_MB * 1024 * 1024,
+    'feather': MAX_PARQUET_SIZE_MB * 1024 * 1024,
 }
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {
-    'csv', 'txt', 'tsv', 'arff', 'json', 'jsonl',
+    'csv', 'txt', 'dat', 'data', 'tsv', 'xlsx', 'arff', 'json', 'jsonl',
     'parquet', 'pq', 'arrow', 'feather'
 }
 
@@ -305,7 +311,7 @@ def validate_uploaded_file(
         return False, error, [], None
     
     # 3. Format-specific validation
-    if file_ext.lower() == 'csv':
+    if file_ext.lower() in {'csv', 'tsv'}:
         is_valid, error, warnings = validate_csv_content(file_path)
         if not is_valid:
             return False, error, [], None

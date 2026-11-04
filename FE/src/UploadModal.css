@@ -8,6 +8,64 @@
   z-index: 999;
 }
 
+.model-warning-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  background: rgba(15, 18, 24, 0.58);
+}
+
+.model-warning-dialog {
+  width: min(460px, 100%);
+  padding: 24px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: #fff;
+  color: #242124;
+  text-align: left;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+}
+
+.model-warning-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+}
+
+.model-warning-dialog p {
+  line-height: 1.5;
+}
+
+.model-warning-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.model-warning-actions button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #6f0a7f;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.model-warning-cancel {
+  background: #fff;
+  color: #6f0a7f;
+}
+
+.model-warning-continue {
+  background: #6f0a7f;
+  color: #fff;
+}
+
 .upload-modal {
   background: white;
   padding: 2rem;
@@ -102,6 +160,15 @@
   font-weight: 500;
 }
 
+.preview-error {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(180, 35, 24, 0.25);
+  border-radius: 6px;
+  background: #fff1f0;
+  color: #8a1c13;
+  text-align: left;
+}
+
 .select-label {
   font-weight: 500;
   margin-bottom: 0.25rem;
@@ -131,6 +198,43 @@
   font-size: 1rem;
   margin-bottom: 0.75rem;
   color: #374151;
+}
+
+.dataset-description-upload {
+  margin: 0.75rem 0 1rem;
+}
+
+.dataset-description-upload input[type="file"] {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  font: inherit;
+}
+
+.dataset-description-help {
+  margin-top: 0.35rem;
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.dataset-description-file {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+
+.dataset-description-file button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #6f0a7f;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
 }
 
 .toggle-row {

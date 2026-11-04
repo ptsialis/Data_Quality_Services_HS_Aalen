@@ -11,6 +11,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/preview': backendTarget,
       '/upload': backendTarget,
       '/status': backendTarget,
       '/original': backendTarget,
@@ -19,6 +20,7 @@ export default defineConfig({
       '/imputation': backendTarget,
       '/anomaly': backendTarget,
       '/personal': backendTarget,
+      '/tasktype': backendTarget,
       '/metadata': backendTarget,
       '/summary': backendTarget,
       '/detectedCounts': backendTarget,

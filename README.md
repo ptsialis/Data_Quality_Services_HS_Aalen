@@ -35,6 +35,26 @@ View logs with `docker compose -f docker-compose.yml logs -f`.
 Use the explicit Compose file in manual commands to keep this project's scope clear.
 Port 8503 must be free; stop an existing Data Quality frontend before starting.
 
+## Upload formats and task identification
+
+Uploads support CSV, TSV, XLSX, ARFF, JSON, JSONL, TXT, DAT, DATA, Arrow,
+Feather, and Parquet files. The upload dialog reads the file through the backend
+loader before presenting the target-column selector.
+
+In the upload dialog's LLM settings, enable **Use LLM for ML Task Type
+Identification** to classify the selected target as a Tabular or Time Series
+task and identify it as binary, multiclass, or regression. This option is off
+by default and uses the configured backend LLM. The EXP2-inspired prompt
+adaptation and its license attribution are documented in
+[`BE/THIRD_PARTY_NOTICES.md`](BE/THIRD_PARTY_NOTICES.md).
+
+The LLM model can be selected in the same upload settings. Qwen3 4B Instruct
+is the default; Qwen3 4B Thinking is also available. The selected model is
+downloaded on first use, and switching models replaces the currently loaded model.
+
+Qwen2.5 14B Instruct is also listed when an NVIDIA CUDA GPU is available. It
+uses 4-bit quantization and is not supported on CPU-only hosts.
+
 ## NVIDIA GPU (optional)
 
 With NVIDIA drivers and the NVIDIA Container Toolkit installed:
