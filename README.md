@@ -8,7 +8,7 @@ A web service for preparing and assessing tabular datasets. Users can review ana
 - **Personal data detection:** Identifies columns that may contain personal or sensitive information by analyzing column names and values, with an optional dataset description. See the [personal-data detection paper](https://arxiv.org/abs/2506.22305).
 - **Missing-value imputation:** Fills missing tabular values with the mean for numeric columns and the mode for other columns. This is a low-cost default; the cited [imputation study](https://dl.acm.org/doi/full/10.1145/3643643) reports results competitive with more complex approaches.
 - **Anomaly detection:** Flags unusual rows in tabular or time-series data to help identify possible errors, sensor faults, or rare events. The tabular detector uses [PyOD](https://github.com/yzhao062/pyod); see also this [time-series anomaly detection paper](https://arxiv.org/abs/2201.07284).
-- **Optional AI analysis:** Can identify an ML task type and assist with feature and personal-data analysis. The available language models are described below.
+- **ML task-type identification:** When enabled, uses the dataset excerpt, selected target, and optional dataset description to infer whether the data is tabular or time series and whether the target is binary, multiclass, or regression. See [Large Language Models for Automated Cross-Domain Machine Learning Task Type Identification](https://arxiv.org/abs/2609.35335). Other optional AI features can assist with feature and personal-data analysis; available models are described below.
 
 ## Basic workflow
 
