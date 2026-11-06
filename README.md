@@ -35,6 +35,28 @@ View logs with `docker compose -f docker-compose.yml logs -f`.
 Use the explicit Compose file in manual commands to keep this project's scope clear.
 Port 8503 must be free; stop an existing Data Quality frontend before starting.
 
+## Rebuild after changes
+
+To rebuild and restart the frontend or backend after editing its code:
+
+```bash
+docker compose -f docker-compose.yml up -d --build frontend
+docker compose -f docker-compose.yml up -d --build backend
+```
+
+To rebuild and restart both services, run `./start.sh -d`.
+
+## Dependency files
+
+- `requirements-base.txt` contains the shared Python/ML dependencies.
+- `BE/requirements.txt` contains the backend-specific Python dependencies.
+  The backend Dockerfile installs both files together.
+- `FE/package.json` declares the frontend dependencies.
+
+`Dockerfile.base` is an optional standalone base-image build and uses
+`requirements-base.txt`. The normal Compose build installs dependencies directly
+and does not require this base image or publishing images to a registry.
+
 ## Upload formats and task identification
 
 Uploads support CSV, TSV, XLSX, ARFF, JSON, JSONL, TXT, DAT, DATA, Arrow,
