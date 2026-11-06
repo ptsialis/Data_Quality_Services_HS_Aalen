@@ -103,6 +103,3 @@ Previous uploads, sessions, generated reports and experimental datasets were
 excluded. Working data lives inside the backend container and is removed when
 the container is removed or recreated; download results before doing so.
 LLM features may download models on first use and can be slow on CPU.
-
-Original application notes and known issues are in `UPSTREAM_NOTES.md`;
-use this README for standalone startup instructions.

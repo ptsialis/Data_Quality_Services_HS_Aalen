@@ -2,6 +2,24 @@
 .env.*
 !.env.example
 
+# Python and serialized model artifacts
+*$py.class
+*.pkl
+*.joblib
+
+# Frontend dependencies and generated output
+dist/
+.vite/
+
+# Local datasets and generated files
+*.tsv
+*.xlsx
+*.parquet
+!BE/data/.gitkeep
+tmp/
+.cache/
+*.log
+
 # Agent and GPT instructions
 AGENTS.md
 **/AGENTS.md
@@ -15,8 +33,7 @@ node_modules/
 .venv/
 venv/
 __pycache__/
-*.pyc
-FE/dist/
+*.py[cod]
 BE/Session_Flask/
 BE/session_data/
 BE/temp_plots/
