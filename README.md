@@ -1,6 +1,23 @@
 # Data Quality AI Service
 
-A web service for preparing and assessing tabular datasets. It can infer feature types, flag likely personal data, impute missing values, detect anomalies, and generate summaries and metadata. Optional AI features can identify a machine-learning task type and assist with column analysis. Users can review results and download outputs.
+A web service for preparing and assessing tabular datasets. Users can review analysis results and download processed data and metadata.
+
+## What it does
+
+- **Feature type inference:** Assigns semantic types to dataset columns, such as numeric, categorical, sentence, URL, list, embedded number, context-specific, non-generalizable, or datetime. These types help downstream processing handle columns appropriately.
+- **Personal data detection:** Identifies columns that may contain personal or sensitive information by analyzing column names and values, with an optional dataset description. See the [personal-data detection paper](https://arxiv.org/abs/2506.22305).
+- **Missing-value imputation:** Fills missing tabular values with the mean for numeric columns and the mode for other columns. This is a low-cost default; the cited [imputation study](https://dl.acm.org/doi/full/10.1145/3643643) reports results competitive with more complex approaches.
+- **Anomaly detection:** Flags unusual rows in tabular or time-series data to help identify possible errors, sensor faults, or rare events. The tabular detector uses [PyOD](https://github.com/yzhao062/pyod); see also this [time-series anomaly detection paper](https://arxiv.org/abs/2201.07284).
+- **Optional AI analysis:** Can identify an ML task type and assist with feature and personal-data analysis. The available language models are described below.
+
+## Basic workflow
+
+1. Upload a dataset. Supported formats include CSV, TSV, XLSX, ARFF, JSON, JSONL, TXT, DAT, DATA, Arrow, Feather, and Parquet.
+2. Select a target column when relevant, and choose optional AI analysis settings.
+3. Run the analysis. The service performs feature-type inference, imputation, anomaly detection, and the selected personal-data and task-type analyses.
+4. Review the results and download processed data or metadata.
+
+The app supports downloads; direct publishing to Piveau is not currently available.
 
 ## Run with Docker
 
