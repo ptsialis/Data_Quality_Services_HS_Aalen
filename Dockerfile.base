@@ -1,22 +1,23 @@
-FROM continuumio/miniconda3:24.3.0-0
+# Explicit Debian release avoids unexpected OS changes between builds.
+FROM python:3.11-slim-bookworm
 
-# Install Python 3.11
-RUN conda install -y python=3.11 && conda clean -afy
+ENV PYTHONUNBUFFERED=1
 
-ENV PATH=/opt/conda/bin:$PATH
 WORKDIR /app
 
 # System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=3 update && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
+    git \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install base Python dependencies
 COPY requirements-base.txt .
 
-RUN /opt/conda/bin/python -m pip install --upgrade "pip<25" "setuptools<70" wheel
-RUN /opt/conda/bin/python -m pip install --no-cache-dir -r requirements-base.txt
+RUN python -m pip install --upgrade "pip<25" "setuptools<70" wheel
+RUN python -m pip install --no-cache-dir -r requirements-base.txt
 
 # ─────────────── NLTK SETUP ───────────────
 
@@ -25,7 +26,7 @@ ENV NLTK_DATA=/usr/local/share/nltk_data
 RUN mkdir -p /usr/local/share/nltk_data
 
 # Download punkt, punkt_tab, stopwords
-RUN /opt/conda/bin/python - <<'PY'
+RUN python - <<'PY'
 import nltk
 download_dir = "/usr/local/share/nltk_data"
 print("Downloading punkt, punkt_tab and stopwords into", download_dir)
@@ -43,7 +44,5 @@ RUN mkdir -p /usr/local/share/nltk_data/tokenizers/punkt/PY3 && \
        /usr/local/share/nltk_data/tokenizers/punkt/PY3/ || true
 
 # ──────────────────────────────────────────
-
-ENV PYTHONUNBUFFERED=1
 
 CMD ["python"]

@@ -1,17 +1,16 @@
-FROM continuumio/miniconda3:24.3.0-0
+# Explicit Debian release avoids unexpected OS changes between builds.
+FROM python:3.11-slim-bookworm
 
-RUN conda install -y python=3.11 \
-    && conda clean -afy
-
-ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN apt-get update \
+RUN apt-get -o Acquire::Retries=3 update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
+        git \
+        libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install shared and backend-specific Python dependencies
