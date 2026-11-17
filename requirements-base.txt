@@ -244,11 +244,11 @@ Wikipedia-API==0.8.1
 zstandard==0.23.0
 
 
-
-# CUDA-compatible PyTorch and DGL stack
+# CUDA-compatible PyTorch stack
 --extra-index-url https://download.pytorch.org/whl/cu121
---find-links https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html
+# DGL is only needed for the standalone MTAD_GAT and GDN models.
+# --find-links https://data.dgl.ai/wheels/torch-2.3/cu121/repo.html
 
 torch==2.3.0+cu121
 torchdata==0.8.0
-dgl==2.3.0+cu121
+# dgl==2.3.0+cu121
