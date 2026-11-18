@@ -21,9 +21,11 @@ The app supports downloads; direct publishing to Piveau is not currently availab
 
 ## Run with Docker
 
-Install Docker with the Compose plugin. From the project directory, start the default CPU mode:
+Install Docker with the Compose plugin. Clone the repository, enter the project directory, and start the default CPU mode:
 
 ```bash
+git clone https://github.com/ptsialis/Data_Quality_Services_HS_Aalen.git
+cd Data_Quality_Services_HS_Aalen
 ./start.sh
 ```
 
