@@ -27,6 +27,23 @@ RUN python -m pip install \
         -r /tmp/requirements-base.txt \
         -r /tmp/requirements-backend.txt
 
+# Bundle the supported LLM weights in the image so users do not download them
+# when they select a model at runtime.
+ENV HF_HOME=/models/huggingface
+RUN mkdir -p /models/huggingface && python - <<'PY'
+from huggingface_hub import snapshot_download
+
+for model_id in (
+    "Qwen/Qwen3-4B-Instruct-2507",
+    "Qwen/Qwen3-4B-Thinking-2507",
+    "Qwen/Qwen2.5-14B-Instruct",
+):
+    snapshot_download(
+        repo_id=model_id,
+        cache_dir="/models/huggingface",
+    )
+PY
+
 # Download required NLTK resources
 ENV NLTK_DATA=/usr/local/share/nltk_data
 

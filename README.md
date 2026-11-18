@@ -27,15 +27,45 @@ Install Docker with the Compose plugin. From the project directory, start the de
 ./start.sh
 ```
 
+<!-- Windows/Docker Desktop instructions are temporarily commented out.
 On Windows, install Docker Desktop with the WSL 2 backend, then run in PowerShell:
 
 ```powershell
 .\start.ps1
 ```
 
-Use `.\start.ps1 -Detach` to run in the background. The script checks Docker and Compose, creates `.env` with a random session secret on first start, and builds the services. If PowerShell blocks the script, run it with `powershell -ExecutionPolicy Bypass -File .\start.ps1`.
+Use `.\start.ps1 -Detach` to run in the background. The script checks Docker and Compose, creates `.env` with a random session secret on first start, and builds the services.
+-->
 
-Open [http://localhost:8503](http://localhost:8503). On first start, the script creates a local `.env` with a random session secret and builds the services. The first build needs internet access and disk space; selected AI models are downloaded when first used.
+Open [http://localhost:8503](http://localhost:8503). On first start, the script creates a local `.env` with a random session secret.
+
+For a source build, all configured Qwen models are downloaded once while building the backend Docker image and are included in the image cache. Normal startup from that image does not download models again. Building this image requires substantial disk space because it includes the 4B and 14B model weights.
+
+To pull and run the public published images instead of building the source locally:
+
+```bash
+./start.sh --pull -d
+```
+
+<!--
+```powershell
+.\start.ps1 -Pull -Detach
+```
+-->
+
+Maintainers can build and publish both public GHCR images with:
+
+```bash
+./start.sh --publish
+```
+
+<!--
+```powershell
+.\start.ps1 -Publish
+```
+-->
+
+Authenticate Docker to `ghcr.io` first if needed. After the first push, open each package in GitHub and set its visibility to public; public packages can then be pulled without a login.
 
 To run in the background, use `./start.sh -d`. Stop the services with:
 
@@ -49,7 +79,7 @@ Uploads support CSV, TSV, XLSX, ARFF, JSON, JSONL, TXT, DAT, DATA, Arrow, Feathe
 
 CPU mode is the default and needs no GPU setup. AI model loading and analysis can be slower, particularly with larger models.
 
-For an NVIDIA GPU on Linux, install the NVIDIA drivers and NVIDIA Container Toolkit. On Windows, use Docker Desktop with its WSL 2 backend and install a current NVIDIA Windows driver; the GPU must be available to WSL 2. The Docker image is Linux on both host operating systems and uses PyTorch 2.3 with CUDA 12.1 (`cu121`). The host CUDA toolkit does not need to match or be installed inside the image; GPU access depends on Docker exposing a compatible NVIDIA driver.
+For an NVIDIA GPU on Linux, install the NVIDIA drivers and NVIDIA Container Toolkit. The Docker image is Linux and uses PyTorch 2.3 with CUDA 12.1 (`cu121`). The host CUDA toolkit does not need to be installed inside the image; GPU access depends on Docker exposing a compatible NVIDIA driver.
 
 Start GPU mode with:
 
@@ -57,11 +87,13 @@ Start GPU mode with:
 ./start.sh --gpu -d
 ```
 
+<!--
 ```powershell
 .\start.ps1 -Gpu -Detach
 ```
+-->
 
-To confirm GPU access after startup, check `http://localhost:8503/status` for `gpu.cuda_available: true`. If it is false, verify Docker Desktop's WSL 2 backend and NVIDIA driver before changing Python package versions.
+To confirm GPU access after startup, check `http://localhost:8503/status` for `gpu.cuda_available: true`. If it is false, verify Docker and the NVIDIA Container Toolkit before changing Python package versions.
 
 The Docker build installs `requirements-base.txt` and `BE/requirements.txt`. `BE/requirements-current-image.txt` is a captured environment snapshot, not a portable install file; it contains machine-local package references and is not used by the Docker build.
 

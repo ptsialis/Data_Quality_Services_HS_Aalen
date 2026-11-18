@@ -1,4 +1,5 @@
 FE/node_modules
+FE/.vite
 BE/__pycache__
 BE/.venv
 BE/**/*.pyc
