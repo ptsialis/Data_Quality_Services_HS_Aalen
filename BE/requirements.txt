@@ -26,8 +26,7 @@ keras==2.12.0
 xgboost==1.7.6
 flair==0.15.1
 
-# LLM / Hugging Face stack for Qwen3
-transformers==4.51.0
+# LLM / Hugging Face stack for Qwen (shared Transformers pin is in requirements-base.txt)
 huggingface-hub==0.34.4
 
 safetensors==0.5.3

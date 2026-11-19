@@ -16,6 +16,7 @@ MODEL_OPTIONS = {
     "qwen3_instruct": "Qwen/Qwen3-4B-Instruct-2507",
     "qwen3_thinking": "Qwen/Qwen3-4B-Thinking-2507",
     "qwen25_14b": "Qwen/Qwen2.5-14B-Instruct",
+    # "gemma4_e4b": "google/gemma-4-E4B-it",
 }
 DEFAULT_MODEL_KEY = "qwen3_instruct"
 GPU_REQUIRED_MODEL_KEYS = frozenset({"qwen25_14b"})

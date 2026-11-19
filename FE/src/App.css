@@ -19,7 +19,6 @@
   box-sizing: border-box;
 }
 
-
 .background {
   background: url('/back.png') no-repeat center 0px/cover;
   position: fixed;

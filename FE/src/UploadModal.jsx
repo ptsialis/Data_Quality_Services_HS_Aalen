@@ -23,6 +23,12 @@ function UploadModal({
   const [localColumns, setLocalColumns] = useState([]);
   const [localTarget, setLocalTarget] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadId, setUploadId] = useState(null);
+  const [uploadSteps, setUploadSteps] = useState([]);
+  const [uploadStage, setUploadStage] = useState('validate');
+  const [uploadError, setUploadError] = useState('');
+  const progressDialogRef = useRef(null);
+  const showProgress = isLoading || Boolean(uploadError);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const isSubmittingRef = useRef(false);
@@ -39,6 +45,8 @@ function UploadModal({
       setLocalColumns([]);
       setLocalTarget('');
       setIsLoading(false);
+      setUploadId(null);
+      setUploadError('');
       setIsPreviewing(false);
       setPreviewError('');
       isSubmittingRef.current = false;
@@ -62,6 +70,41 @@ function UploadModal({
       active = false;
     };
   }, [show]);
+
+  useEffect(() => {
+    const dialog = progressDialogRef.current;
+    if (show && showProgress && dialog && !dialog.open) dialog.showModal();
+  }, [show, showProgress]);
+
+  useEffect(() => {
+    if (!uploadId) return undefined;
+
+    const controller = new AbortController();
+    let timer;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/upload/progress/${uploadId}`, {
+          cache: 'no-store',
+          credentials: 'same-origin',
+          signal: controller.signal,
+        });
+        if (response.ok) {
+          const { stage } = await response.json();
+          if (!controller.signal.aborted && isSubmittingRef.current) setUploadStage(stage);
+        }
+      } catch {
+        // The upload response still reports success or failure if polling is interrupted.
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(poll, 750);
+      }
+    };
+
+    timer = setTimeout(poll, 750);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [uploadId]);
 
   const handleFileChange = (e) => {
     if (isSubmittingRef.current) return;
@@ -155,7 +198,24 @@ function UploadModal({
       return;
     }
 
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+      byte.toString(16).padStart(2, '0')
+    ).join('');
+    const steps = ['validate'];
+    if (useLLMTaskTypeIdentification || useLLMFeatureInference || useLLMPersonalDataDetection) {
+      steps.push('model');
+    }
+    if (useLLMTaskTypeIdentification) steps.push('taskType');
+    if (useLLMFeatureInference && useLLMPersonalDataDetection) steps.push('combined');
+    else if (useLLMFeatureInference) steps.push('featureType');
+    else if (useLLMPersonalDataDetection) steps.push('personal');
+    steps.push('quality');
+
     isSubmittingRef.current = true;
+    setUploadSteps(steps);
+    setUploadStage('validate');
+    setUploadError('');
+    setUploadId(id);
     setIsLoading(true);
     setUploadedFile(selectedFile);
     setColumns(localColumns);
@@ -164,6 +224,7 @@ function UploadModal({
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("target", localTarget);
+    formData.append("upload_id", id);
 
     // LLM-Variablen korrekt an das Backend senden
     formData.append("use_llm_feature_type_inference", useLLMFeatureInference ? "true" : "false");
@@ -180,26 +241,19 @@ function UploadModal({
         body: formData
       });
 
-      const responseText = await response.text();
-      let result = {};
-
-      try {
-        result = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        result = { error: responseText || "Ungültige Server-Antwort." };
-      }
-
-      if (!response.ok) {
-        alert("Fehler beim Upload: " + (result?.error || "Unbekannter Fehler"));
-        setIsLoading(false);
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        if (steps.includes(result?.uploadStage)) setUploadStage(result.uploadStage);
+        setUploadError(result?.error || t('uploadProgressError'));
         return;
       }
 
-      await onSubmit(result); // weitergeben an App.jsx
-
+      setUploadId(null);
+      await onSubmit(result);
     } catch (error) {
-      alert("Beim Hochladen der Datei ist ein Fehler aufgetreten:\n" + error.message);
+      setUploadError(error.message || t('uploadProgressError'));
     } finally {
+      setUploadId(null);
       isSubmittingRef.current = false;
       setIsLoading(false);
     }
@@ -210,6 +264,7 @@ function UploadModal({
 
   if (!show) return null;
 
+  const activeStep = Math.max(uploadSteps.indexOf(uploadStage), 0);
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div
@@ -286,6 +341,7 @@ function UploadModal({
                 >
                   <option value="qwen3_instruct">{t('qwen3InstructModel')}</option>
                   <option value="qwen3_thinking">{t('qwen3ThinkingModel')}</option>
+                  {/* <option value="gemma4_e4b">{t('gemma4E4bModel')}</option> */}
                   <option value="qwen25_14b" disabled={!cudaAvailable}>{t('qwen25_14bModel')}</option>
                 </select>
               </div>
@@ -387,6 +443,61 @@ function UploadModal({
           </div>
         )}
       </div>
+
+      {showProgress && (
+        <dialog
+          ref={progressDialogRef}
+          className="model-warning-dialog upload-progress-dialog"
+          aria-labelledby="upload-progress-title"
+          onClick={(event) => event.stopPropagation()}
+          onCancel={(event) => {
+            event.preventDefault();
+            if (uploadError) setUploadError('');
+          }}
+        >
+          <h2 id="upload-progress-title">
+            {t(uploadError ? 'uploadProgressFailed' : 'uploadProgressTitle')}
+          </h2>
+          <progress
+            aria-label={t('uploadProgressTitle')}
+            value={activeStep}
+            max={uploadSteps.length}
+          />
+          <ol aria-live="polite">
+            {uploadSteps.map((stage, index) => {
+              let status = 'uploadProgressPending';
+              if (index < activeStep) status = 'uploadProgressDone';
+              if (index === activeStep) {
+                status = uploadError ? 'uploadProgressFailedStep' : 'uploadProgressRunning';
+              }
+              return (
+                <li key={stage} aria-current={index === activeStep ? 'step' : undefined}>
+                  <span>{t(`uploadProgressStages.${stage}`)}</span>
+                  <span>
+                    {status === 'uploadProgressRunning' && <i className="spinner" aria-hidden="true" />}
+                    {t(status)}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+          {uploadStage === 'model' && !uploadError && <p>{t('uploadProgressModelHint')}</p>}
+          {uploadError && (
+            <>
+              <p role="alert">{uploadError}</p>
+              <div className="model-warning-actions">
+                <button
+                  type="button"
+                  className="model-warning-cancel"
+                  onClick={() => setUploadError('')}
+                >
+                  {t('uploadProgressBack')}
+                </button>
+              </div>
+            </>
+          )}
+        </dialog>
+      )}
 
       {showLargeModelWarning && (
         <div

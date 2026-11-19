@@ -41,7 +41,7 @@ Use `.\start.ps1 -Detach` to run in the background. The script checks Docker and
 
 Open [http://localhost:8503](http://localhost:8503). On first start, the script creates a local `.env` with a random session secret.
 
-For a source build, all configured Qwen models are downloaded once while building the backend Docker image and are included in the image cache. Normal startup from that image does not download models again. Building this image requires substantial disk space because it includes the 4B and 14B model weights.
+The default Qwen3 4B Instruct model is downloaded while building the backend Docker image and is included in the image cache, so normal startup and first use do not download it again. Qwen3 4B Thinking and Qwen2.5 14B Instruct remain optional downloads and are fetched when selected for the first time. The 14B model requires a suitable NVIDIA GPU.
 
 To pull and run the public published images instead of building the source locally:
 
@@ -81,7 +81,7 @@ Uploads support CSV, TSV, XLSX, ARFF, JSON, JSONL, TXT, DAT, DATA, Arrow, Feathe
 
 CPU mode is the default and needs no GPU setup. AI model loading and analysis can be slower, particularly with larger models.
 
-For an NVIDIA GPU on Linux, install the NVIDIA drivers and NVIDIA Container Toolkit. The Docker image is Linux and uses PyTorch 2.3 with CUDA 12.1 (`cu121`). The host CUDA toolkit does not need to be installed inside the image; GPU access depends on Docker exposing a compatible NVIDIA driver.
+For an NVIDIA GPU on Linux, install the NVIDIA drivers and NVIDIA Container Toolkit. The main backend environment uses PyTorch 2.3 with CUDA 12.1 (`cu121`). The host CUDA toolkit does not need to be installed inside the image; GPU access depends on Docker exposing a compatible NVIDIA driver.
 
 Start GPU mode with:
 
@@ -103,6 +103,6 @@ The 14B model option requires CUDA and is unavailable in CPU-only mode.
 
 ## AI model choices
 
-The upload settings offer Qwen3 4B Instruct (default), Qwen3 4B Thinking, and Qwen2.5 14B Instruct. The model is used for AI-assisted features; the standard data-quality operations do not require it.
+The upload settings offer Qwen3 4B Instruct (default), Qwen3 4B Thinking, and Qwen2.5 14B Instruct. The model is used for AI-assisted features only. Gemma 4 E4B support is disabled in the current build.
 
 Larger models can give better results on ambiguous or context-heavy tasks, but this is not guaranteed. They use more memory and can take longer to load and run. Use a 4B model for a faster, lighter option; consider the 14B model when result quality is the priority and a suitable NVIDIA GPU is available.

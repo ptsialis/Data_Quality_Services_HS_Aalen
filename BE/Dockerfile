@@ -27,21 +27,21 @@ RUN python -m pip install \
         -r /tmp/requirements-base.txt \
         -r /tmp/requirements-backend.txt
 
-# Bundle the supported LLM weights in the image so users do not download them
-# when they select a model at runtime.
+# Gemma 4 is disabled. Its separate Python environment preserves Flair compatibility.
+# COPY BE/requirements-gemma4.txt /tmp/requirements-gemma4.txt
+# RUN python -m venv /opt/gemma4 \
+    # && /opt/gemma4/bin/python -m pip install --no-cache-dir -r /tmp/requirements-gemma4.txt
+# ENV GEMMA4_PYTHON=/opt/gemma4/bin/python
+
+# Bundle the default LLM weights in the image. Optional larger or specialized
+# models remain lazy downloads and are fetched when the user selects them.
 ENV HF_HOME=/models/huggingface
 RUN mkdir -p /models/huggingface && python - <<'PY'
 from huggingface_hub import snapshot_download
 
-for model_id in (
-    "Qwen/Qwen3-4B-Instruct-2507",
-    "Qwen/Qwen3-4B-Thinking-2507",
-    "Qwen/Qwen2.5-14B-Instruct",
-):
-    snapshot_download(
-        repo_id=model_id,
-        cache_dir="/models/huggingface",
-    )
+snapshot_download(
+    repo_id="Qwen/Qwen3-4B-Instruct-2507",
+)
 PY
 
 # Download required NLTK resources

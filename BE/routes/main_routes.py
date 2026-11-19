@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, Response, session, send_file, g
+from flask import Blueprint, request, jsonify, Response, session, send_file, g, make_response, current_app
 import pandas as pd
 import json
 import math
@@ -371,8 +371,63 @@ def preview_uploaded_dataset():
     })
 
 
+def _set_upload_stage(stage):
+    g.upload_stage = stage
+    directory = getattr(g, "upload_progress_directory", None)
+    if directory is not None:
+        try:
+            temporary = directory / "next.json"
+            temporary.write_text(json.dumps({"stage": stage}), encoding="utf-8")
+            temporary.replace(directory / "progress.json")
+        except OSError:
+            logger.warning("Could not publish upload progress", exc_info=True)
+
+
+@bp.get("/upload/progress/<upload_id>")
+def get_upload_progress(upload_id):
+    if not re.fullmatch(r"[0-9a-f]{32}", upload_id) or not session.get("workspace_id"):
+        return "", 404
+
+    path = get_session_file_path(f".upload-progress-{upload_id}") / "progress.json"
+    try:
+        progress = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return "", 404
+    response = jsonify(progress)
+    response.cache_control.no_store = True
+    return response
+
+
 @bp.route('/upload', methods=['POST'])
 def upload_data_beginning():
+    upload_id = request.form.get("upload_id")
+    if not upload_id:
+        return _process_upload()
+    if not re.fullmatch(r"[0-9a-f]{32}", upload_id):
+        return jsonify({"success": False, "error": "Invalid upload ID."}), 400
+
+    directory = get_session_file_path(f".upload-progress-{upload_id}")
+    try:
+        directory.mkdir(mode=0o700)
+    except FileExistsError:
+        return jsonify({"success": False, "error": "This upload is already in progress."}), 409
+
+    g.upload_progress_directory = directory
+    try:
+        response = make_response(_process_upload())
+        if response.status_code >= 400 and response.is_json:
+            payload = response.get_json()
+            response.set_data(current_app.json.dumps({**payload, "uploadStage": g.upload_stage}))
+        return response
+    except Exception:
+        logger.exception("Upload failed during %s", g.upload_stage)
+        return jsonify({"success": False, "uploadStage": g.upload_stage}), 500
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def _process_upload():
+    _set_upload_stage("validate")
     upload_started_at = time.perf_counter()
     file = request.files.get('file')
     if not file:
@@ -447,6 +502,7 @@ def upload_data_beginning():
         or use_llm_personal_data_detection
         or use_llm_task_type_identification
     ):
+        _set_upload_stage("model")
         if not LLM_UPLOAD_LOCK.acquire(blocking=False):
             logger.warning("upload.llm_busy filename=%s", file.filename)
             return jsonify({
@@ -483,6 +539,7 @@ def upload_data_beginning():
 
     task_type_result = None
     if use_llm_task_type_identification:
+        _set_upload_stage("taskType")
         try:
             task_type_result = identify_task_type(
                 df_original,
@@ -503,6 +560,7 @@ def upload_data_beginning():
         use_llm_feature_type_inference
         and use_llm_personal_data_detection
     ):
+        _set_upload_stage("combined")
         (
             feature_typ_inference,
             personal_0,
@@ -514,12 +572,14 @@ def upload_data_beginning():
         )
 
     elif use_llm_feature_type_inference:
+        _set_upload_stage("featureType")
         feature_typ_inference = execute_featuretype_LLM(
             df_original,
             model_llm,
             dataset_description=dataset_description,
         )
 
+        _set_upload_stage("quality")
         personal_0, personal_1 = (
             gc.make_prediciton_personal(df_original)
         )
@@ -530,6 +590,7 @@ def upload_data_beginning():
             "RandomForest",
         )
 
+        _set_upload_stage("personal")
         personal_0, personal_1 = execute_personal_llm(
             df_original,
             model_llm,
@@ -537,6 +598,7 @@ def upload_data_beginning():
         )
 
     else:
+        _set_upload_stage("quality")
         feature_typ_inference = gc.make_predictions(
             df,
             "RandomForest",
@@ -545,6 +607,9 @@ def upload_data_beginning():
         personal_0, personal_1 = (
             gc.make_prediciton_personal(df_original)
         )
+
+    if g.upload_stage != "quality":
+        _set_upload_stage("quality")
 
     logger.info(
         "upload.feature_detection.done filename=%s inference_rows=%s personal_summary_rows=%s personal_detail_rows=%s",

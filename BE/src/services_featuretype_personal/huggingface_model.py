@@ -44,6 +44,19 @@ def load_model(model: str = "", quantization: str = "4bit"):
     Returns:
         transformers.Pipeline: Text-generation pipeline.
     """
+    valid_quantization_modes = {"8bit", "4bit", "16bit", ""}
+
+    if quantization not in valid_quantization_modes:
+        raise ValueError(
+            f"Unsupported quantization mode: {quantization!r}. "
+            f"Choose one of {sorted(valid_quantization_modes)!r}."
+        )
+
+    # if model == "google/gemma-4-E4B-it":
+        # from .gemma4 import Gemma4ChatAdapter
+
+        # return Gemma4ChatAdapter(model, quantization)
+
     try:
         import torch
         from transformers import (
@@ -57,14 +70,6 @@ def load_model(model: str = "", quantization: str = "4bit"):
             "Failed to import the required model libraries. Ensure that "
             "torch, transformers and huggingface_hub are installed."
         ) from exc
-
-    valid_quantization_modes = {"8bit", "4bit", "16bit", ""}
-
-    if quantization not in valid_quantization_modes:
-        raise ValueError(
-            f"Unsupported quantization mode: {quantization!r}. "
-            f"Choose one of {sorted(valid_quantization_modes)!r}."
-        )
 
     cuda_available = torch.cuda.is_available()
     is_gpu_required_model = model == "Qwen/Qwen2.5-14B-Instruct"

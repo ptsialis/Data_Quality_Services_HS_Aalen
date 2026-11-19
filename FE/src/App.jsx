@@ -598,19 +598,6 @@ function App() {
 
       <div className="background" />
 
-      {selectedOperation && (
-        <div className="current-tab-label">
-          <h3>
-            {selectedOperation === 'downloads'
-              ? t('Downloads')
-              : activeTabs?.[selectedOperation]
-                ? t(activeTabs[selectedOperation])
-                : t(selectedOperation)}
-          </h3>
-        </div>
-      )}
-
-
       <div className="scroll-content">
 
         <UploadModal
