@@ -6,7 +6,7 @@ A web service for preparing and assessing tabular datasets. Users can review ana
 
 - **Feature type inference:** Assigns semantic types to dataset columns, such as numeric, categorical, sentence, URL, list, embedded number, context-specific, non-generalizable, or datetime. These types help downstream processing handle columns appropriately.
 - **Personal data detection:** Identifies columns that may contain personal or sensitive information by analyzing column names and values, with an optional dataset description. See the [personal-data detection paper](https://arxiv.org/abs/2506.22305).
-- **Missing-value imputation:** Fills missing tabular values with the mean for numeric columns and the mode for other columns. This is a low-cost default; the cited [imputation study](https://dl.acm.org/doi/full/10.1145/3643643) reports results competitive with more complex approaches.
+- **Missing-value imputation:** Fills missing tabular values with the mean for numeric columns and the mode for other columns. This is a low-cost default; the cited [imputation study](https://dl.acm.org/doi/full/10.1145/3643643 ) reports results competitive with more complex approaches.
 - **Anomaly detection:** Flags unusual rows in tabular or time-series data to help identify possible errors, sensor faults, or rare events. The tabular detector uses [PyOD](https://github.com/yzhao062/pyod); see also this [time-series anomaly detection paper](https://arxiv.org/abs/2201.07284).
 - **ML task-type identification:** When enabled, uses the dataset excerpt, selected target, and optional dataset description to infer whether the data is tabular or time series and whether the target is binary, multiclass, or regression. See [Large Language Models for Automated Cross-Domain Machine Learning Task Type Identification](https://arxiv.org/abs/2609.35335). Other optional AI features can assist with feature and personal-data analysis; available models are described below.
 
@@ -21,39 +21,39 @@ The app supports downloads; direct publishing to Piveau is not currently availab
 
 ## Run with Docker
 
-Install Docker with the Compose plugin. Clone the repository, enter the project directory, and start the default CPU mode:
+Install Docker with the Compose plugin. Clone the repository, enter the project directory, and start in the default CPU mode using the prebuilt Docker images (recommended; no local build required):
 
 ```bash
 git clone https://github.com/ptsialis/Data_Quality_Services_HS_Aalen.git
 cd Data_Quality_Services_HS_Aalen
-./start.sh
+./start.sh --pull
 ```
 
 <!-- Windows/Docker Desktop instructions are temporarily commented out.
 On Windows, install Docker Desktop with the WSL 2 backend, then run in PowerShell:
 
 ```powershell
-.\start.ps1
+.\start.ps1 -Pull
 ```
 
-Use `.\start.ps1 -Detach` to run in the background. The script checks Docker and Compose, creates `.env` with a random session secret on first start, and builds the services.
+Use `.\start.ps1 -Pull -Detach` to run in the background. The script checks Docker and Compose, creates `.env` with a random session secret on first start, and pulls the published images.
 -->
 
 Open [http://localhost:8503](http://localhost:8503). On first start, the script creates a local `.env` with a random session secret.
 
-The default Qwen3 4B Instruct model is downloaded while building the backend Docker image and is included in the image cache, so normal startup and first use do not download it again. Qwen3 4B Thinking and Qwen2.5 14B Instruct remain optional downloads and are fetched when selected for the first time. The 14B model requires a suitable NVIDIA GPU.
+The published backend image already includes the default Qwen3 4B Instruct model, so it does not need to be downloaded separately after pulling the image. When building locally, the model is downloaded during the Docker build. Qwen3 4B Thinking and Qwen2.5 14B Instruct remain optional downloads and are fetched when selected for the first time. The 14B model requires a suitable NVIDIA GPU.
 
-To pull and run the public published images instead of building the source locally:
+To run the published images in the background:
 
 ```bash
 ./start.sh --pull -d
 ```
 
-<!--
-```powershell
-.\start.ps1 -Pull -Detach
+To build and run the Docker images locally from source instead:
+
+```bash
+./start.sh
 ```
--->
 
 Maintainers can build and publish both public GHCR images with:
 
@@ -69,11 +69,13 @@ Maintainers can build and publish both public GHCR images with:
 
 Authenticate Docker to `ghcr.io` first if needed. After the first push, open each package in GitHub and set its visibility to public; public packages can then be pulled without a login.
 
-To run in the background, use `./start.sh -d`. Stop the services with:
+Stop services started with `--pull` using:
 
 ```bash
-docker compose -f docker-compose.yml down
+docker compose -f docker-compose.release.yml down
 ```
+
+If you built locally instead, use `docker compose -f docker-compose.yml down`.
 
 Uploads support CSV, TSV, XLSX, ARFF, JSON, JSONL, TXT, DAT, DATA, Arrow, Feather, and Parquet.
 
@@ -83,15 +85,17 @@ CPU mode is the default and needs no GPU setup. AI model loading and analysis ca
 
 For an NVIDIA GPU on Linux, install the NVIDIA drivers and NVIDIA Container Toolkit. The main backend environment uses PyTorch 2.3 with CUDA 12.1 (`cu121`). The host CUDA toolkit does not need to be installed inside the image; GPU access depends on Docker exposing a compatible NVIDIA driver.
 
-Start GPU mode with:
+Start GPU mode with the published images:
 
 ```bash
-./start.sh --gpu -d
+./start.sh --pull --gpu -d
 ```
+
+To build and run GPU mode locally instead, use `./start.sh --gpu -d`.
 
 <!--
 ```powershell
-.\start.ps1 -Gpu -Detach
+.\start.ps1 -Pull -Gpu -Detach
 ```
 -->
 
