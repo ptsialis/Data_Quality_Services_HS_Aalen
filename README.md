@@ -55,20 +55,6 @@ To build and run the Docker images locally from source instead:
 ./start.sh
 ```
 
-Maintainers can build and publish both public GHCR images with:
-
-```bash
-./start.sh --publish
-```
-
-<!--
-```powershell
-.\start.ps1 -Publish
-```
--->
-
-Authenticate Docker to `ghcr.io` first if needed. After the first push, open each package in GitHub and set its visibility to public; public packages can then be pulled without a login.
-
 Stop services started with `--pull` using:
 
 ```bash
